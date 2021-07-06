@@ -1,4 +1,6 @@
 import os
+import random
+from glob import glob
 from time import time
 
 import cv2
@@ -43,31 +45,29 @@ class RGBRegressionModel:
         self.train_image_paths = list()
         self.validation_image_paths = list()
         if self.validation_image_path != '':
-            self.train_data_generator = RGBRegressionModelDataGenerator(
-                image_path=self.train_image_path,
-                input_shape=self.input_shape,
-                batch_size=self.batch_size)
-            self.validation_data_generator = RGBRegressionModelDataGenerator(
-                image_path=self.validation_image_path,
-                input_shape=self.input_shape,
-                batch_size=self.batch_size)
-            self.train_image_paths = self.train_data_generator.flow().image_paths
-            self.validation_image_paths = self.validation_data_generator.flow().image_paths
+            self.train_image_paths = self.__init_image_paths(self.train_image_path)
+            self.validation_image_paths = self.__init_image_paths(self.validation_image_path)
         elif self.validation_split > 0.0:
-            self.train_data_generator = RGBRegressionModelDataGenerator(
-                image_path=self.train_image_path,
-                input_shape=self.input_shape,
-                batch_size=self.batch_size,
-                validation_split=self.validation_split)
-            self.train_image_paths = self.train_data_generator.flow('training').image_paths
-            self.validation_image_paths = self.train_data_generator.flow('validation').image_paths
-        else:
-            self.train_data_generator = RGBRegressionModelDataGenerator(
-                image_path=self.train_image_path,
-                input_shape=self.input_shape,
-                batch_size=self.batch_size)
-            self.train_image_paths = self.train_data_generator.flow('training').image_paths
-            self.validation_image_paths = self.train_data_generator.flow('training').image_paths
+            self.train_image_paths, self.validation_image_paths = self.__init_image_paths(self.train_image_path, self.validation_split)
+
+        self.train_data_generator = RGBRegressionModelDataGenerator(
+            image_paths=self.train_image_paths,
+            input_shape=self.input_shape,
+            batch_size=self.batch_size)
+        self.validation_data_generator = RGBRegressionModelDataGenerator(
+            image_paths=self.validation_image_paths,
+            input_shape=self.input_shape,
+            batch_size=self.batch_size)
+
+    @staticmethod
+    def __init_image_paths(image_path, validation_split=0.0):
+        all_image_paths = sorted(glob(f'{image_path}/*.jpg'))
+        all_image_paths += sorted(glob(f'{image_path}/*.png'))
+        random.shuffle(all_image_paths)
+        num_cur_class_train_images = int(len(all_image_paths) * (1.0 - validation_split))
+        image_paths = all_image_paths[:num_cur_class_train_images]
+        validation_image_paths = all_image_paths[num_cur_class_train_images:]
+        return image_paths, validation_image_paths
 
     def fit(self):
         self.model.compile(
@@ -87,27 +87,12 @@ class RGBRegressionModel:
                 mode='min',
                 save_best_only=True)]
 
-        print(f'\ntrain on {len(self.train_data_generator.flow().image_paths)} samples')
-        if len(self.validation_data_generator.flow().image_paths) > 0:
-            print(f'validate on {len(self.validation_data_generator.flow().image_paths)} samples')
-            self.model.fit(
-                x=self.train_data_generator.flow(),
-                validation_data=self.validation_data_generator.flow(),
-                batch_size=self.batch_size,
-                epochs=self.epochs,
-                callbacks=callbacks)
-        elif self.validation_split > 0.0:
-            print(f'validate on {len(self.train_data_generator.flow("validation").image_paths)} samples')
-            self.model.fit(
-                x=self.train_data_generator.flow('training'),
-                validation_data=self.train_data_generator.flow('validation'),
-                batch_size=self.batch_size,
-                epochs=self.epochs,
-                callbacks=callbacks)
-        else:
-            self.model.fit(
-                x=self.train_data_generator.flow(),
-                batch_size=self.batch_size,
-                epochs=self.epochs,
-                callbacks=callbacks)
+        print(f'\ntrain on {len(self.train_image_paths)} samples')
+        print(f'validate on {len(self.validation_image_paths)} samples')
+        self.model.fit(
+            x=self.train_data_generator.flow(),
+            validation_data=self.validation_data_generator.flow(),
+            batch_size=self.batch_size,
+            epochs=self.epochs,
+            callbacks=callbacks)
         cv2.destroyAllWindows()

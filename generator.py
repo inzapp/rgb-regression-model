@@ -1,6 +1,4 @@
-import random
 from concurrent.futures.thread import ThreadPoolExecutor
-from glob import glob
 
 import numpy as np
 import tensorflow as tf
@@ -8,26 +6,11 @@ from cv2 import cv2
 
 
 class RGBRegressionModelDataGenerator:
-    def __init__(self, image_path, input_shape, batch_size, validation_split=0.0):
-        image_paths, validation_image_paths = self.__init_image_paths(image_path, validation_split)
-        self.train_generator_flow = GeneratorFlow(image_paths, input_shape, batch_size)
-        self.validation_generator_flow = GeneratorFlow(validation_image_paths, input_shape, batch_size)
+    def __init__(self, image_paths, input_shape, batch_size):
+        self.generator_flow = GeneratorFlow(image_paths, input_shape, batch_size)
 
-    def flow(self, subset='training'):
-        if subset == 'training':
-            return self.train_generator_flow
-        elif subset == 'validation':
-            return self.validation_generator_flow
-
-    @staticmethod
-    def __init_image_paths(image_path, validation_split):
-        all_image_paths = sorted(glob(f'{image_path}/*.jpg'))
-        all_image_paths += sorted(glob(f'{image_path}/*.png'))
-        random.shuffle(all_image_paths)
-        num_cur_class_train_images = int(len(all_image_paths) * (1.0 - validation_split))
-        image_paths = all_image_paths[:num_cur_class_train_images]
-        validation_image_paths = all_image_paths[num_cur_class_train_images:]
-        return image_paths, validation_image_paths
+    def flow(self):
+        return self.generator_flow
 
 
 class GeneratorFlow(tf.keras.utils.Sequence):
@@ -37,6 +20,11 @@ class GeneratorFlow(tf.keras.utils.Sequence):
         self.batch_size = batch_size
         self.random_indexes = np.arange(len(self.image_paths))
         self.pool = ThreadPoolExecutor(8)
+        self.generator = tf.keras.preprocessing.image.ImageDataGenerator(
+            width_shift_range=0.15,
+            height_shift_range=0.15,
+            rotation_range=15,
+            horizontal_flip=True)
         np.random.shuffle(self.random_indexes)
 
     def __getitem__(self, index):
@@ -50,16 +38,22 @@ class GeneratorFlow(tf.keras.utils.Sequence):
         for f in fs:
             cur_img_path, x = f.result()
             x = cv2.resize(x, (self.input_shape[1], self.input_shape[0]))
+            x = self.generator.flow(x=np.asarray(x).reshape((1,) + self.input_shape), batch_size=1)[0]
             x = np.asarray(x).reshape(self.input_shape).astype('float32') / 255.0
             batch_x.append(x)
 
+            y = []
             label_path = f'{cur_img_path[:-4]}.txt'
             with open(label_path, 'rt') as file:
-                r, g, b = list(map(float, file.readline().replace('\n', '').split(' ')))
-            y = np.asarray([r, g, b]).astype('float32')
+                for line in file.readlines():
+                    r, g, b = list(map(float, line.replace('\n', '').split(' ')))
+                    y.append(r)
+                    y.append(g)
+                    y.append(b)
+            y = np.asarray(y).astype('float32')
             batch_y.append(y)
         batch_x = np.asarray(batch_x).reshape((self.batch_size,) + self.input_shape).astype('float32')
-        batch_y = np.asarray(batch_y).reshape((self.batch_size, 3)).astype('float32')
+        batch_y = np.asarray(batch_y).reshape((self.batch_size, 6)).astype('float32')
         return batch_x, batch_y
 
     def __len__(self):
