@@ -45,8 +45,8 @@ class RGBRegressionModel:
         self.train_image_paths = list()
         self.validation_image_paths = list()
         if self.validation_image_path != '':
-            self.train_image_paths = self.__init_image_paths(self.train_image_path)
-            self.validation_image_paths = self.__init_image_paths(self.validation_image_path)
+            self.train_image_paths, _ = self.__init_image_paths(self.train_image_path)
+            self.validation_image_paths, _ = self.__init_image_paths(self.validation_image_path)
         elif self.validation_split > 0.0:
             self.train_image_paths, self.validation_image_paths = self.__init_image_paths(self.train_image_path, self.validation_split)
 
@@ -70,9 +70,12 @@ class RGBRegressionModel:
         return image_paths, validation_image_paths
 
     def fit(self):
+        def sum_squared_error(y_true, y_pred):
+            return tf.reduce_sum(tf.square(y_true - y_pred))
+
         self.model.compile(
             optimizer=tf.keras.optimizers.Adam(lr=self.lr),
-            loss=tf.keras.losses.MeanSquaredError())
+            loss=sum_squared_error)
         self.model.summary()
 
         if not (os.path.exists('checkpoints') and os.path.isdir('checkpoints')):
