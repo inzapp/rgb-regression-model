@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-class LearningRateScheduler(tf.keras.callbacks.Callback):
+class StepLRDecay(tf.keras.callbacks.Callback):
     def __init__(self, lr, epochs):
         self.lr = lr
         self.epochs = epochs
