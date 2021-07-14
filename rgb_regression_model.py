@@ -7,9 +7,9 @@ import cv2
 import tensorflow as tf
 
 from generator import RGBRegressionModelDataGenerator
-from lr_scheduler import LearningRateScheduler
-from model import get_model
 from training_view import TrainingView
+from triangular_cycle_lr import TriangularCycleLR
+from model import get_model
 
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 live_view_previous_time = time()
@@ -59,6 +59,18 @@ class RGBRegressionModel:
             input_shape=self.input_shape,
             batch_size=self.batch_size)
 
+        if not (os.path.exists('checkpoints') and os.path.isdir('checkpoints')):
+            os.makedirs('checkpoints', exist_ok=True)
+
+        self.callbacks = [
+            TriangularCycleLR(
+                max_lr=self.lr,
+                min_lr=1e-4,
+                cycle_step=2000,
+                batch_size=self.batch_size,
+                train_data_generator=self.train_data_generator,
+                validation_data_generator=self.validation_data_generator)]
+
     @staticmethod
     def __init_image_paths(image_path, validation_split=0.0):
         all_image_paths = sorted(glob(f'{image_path}/*.jpg'))
@@ -70,32 +82,14 @@ class RGBRegressionModel:
         return image_paths, validation_image_paths
 
     def fit(self):
-        def sum_squared_error(y_true, y_pred):
-            return tf.reduce_sum(tf.square(y_true - y_pred))
-
-        self.model.compile(
-            optimizer=tf.keras.optimizers.Adam(lr=self.lr),
-            loss=sum_squared_error)
+        self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.lr), loss=tf.keras.losses.MeanSquaredError())
         self.model.summary()
-
-        if not (os.path.exists('checkpoints') and os.path.isdir('checkpoints')):
-            os.makedirs('checkpoints', exist_ok=True)
-
-        callbacks = [
-            LearningRateScheduler(self.lr, self.epochs),
-            TrainingView(self.model, self.train_image_paths, self.validation_image_paths),
-            tf.keras.callbacks.ModelCheckpoint(
-                filepath='checkpoints/ae_epoch_{epoch}_loss_{loss:.4f}_val_loss_{val_loss:.4f}.h5',
-                monitor='val_loss',
-                mode='min',
-                save_best_only=True)]
 
         print(f'\ntrain on {len(self.train_image_paths)} samples')
         print(f'validate on {len(self.validation_image_paths)} samples')
         self.model.fit(
             x=self.train_data_generator.flow(),
-            validation_data=self.validation_data_generator.flow(),
             batch_size=self.batch_size,
             epochs=self.epochs,
-            callbacks=callbacks)
+            callbacks=self.callbacks)
         cv2.destroyAllWindows()
