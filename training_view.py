@@ -31,7 +31,7 @@ class TrainingView(tf.keras.callbacks.Callback):
             raw = cv2.imread(img_path, self.img_type)
             img = cv2.resize(raw, (self.input_shape[1], self.input_shape[0]))
             x = np.asarray(img).reshape((1,) + self.input_shape) / 255.0
-            y = self.model.predict(x=x, batch_size=1)[0]  # [r, g, b, r, g, b]
+            y = self.model.predict(x=x, batch_size=1)[0]  # [r, g, b]
 
             labeled_color_img = self.__get_labeled_color_image(img_path)
             predicted_color_img = self.__get_predicted_color_image(y)
@@ -60,10 +60,11 @@ class TrainingView(tf.keras.callbacks.Callback):
 
     def __get_predicted_color_image(self, y):
         y0 = [y[0], y[1], y[2]]
-        y1 = [y[3], y[4], y[5]]
+        # y1 = [y[3], y[4], y[5]]
         color_img_0 = self.__get_color_image_using_rgb_values(y0)
-        color_img_1 = self.__get_color_image_using_rgb_values(y1)
-        return np.concatenate((color_img_0, color_img_1), axis=1)
+        return color_img_0
+        # color_img_1 = self.__get_color_image_using_rgb_values(y1)
+        # return np.concatenate((color_img_0, color_img_1), axis=1)
 
     def __get_color_image_using_rgb_values(self, rgb):
         # bgr ordering for opencv

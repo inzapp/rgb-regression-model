@@ -38,23 +38,25 @@ class GeneratorFlow(tf.keras.utils.Sequence):
         for f in fs:
             cur_img_path, x = f.result()
             x = cv2.resize(x, (self.input_shape[1], self.input_shape[0]))
-            x = self.generator.flow(x=np.asarray(x).reshape((1,) + self.input_shape), batch_size=1)[0]
+            # x = self.generator.flow(x=np.asarray(x).reshape((1,) + self.input_shape), batch_size=1)[0]
             x = np.asarray(x).reshape(self.input_shape).astype('float32') / 255.0
             batch_x.append(x)
 
             y = []
             label_path = f'{cur_img_path[:-4]}.txt'
             with open(label_path, 'rt') as file:
-                for line in file.readlines():
-                    r, g, b = list(map(float, line.replace('\n', '').split(' ')))
-                    y.append(r)
-                    y.append(g)
-                    y.append(b)
-            y = self.fix_y_len_to_6(y)
+                r, g, b = list(map(float, file.readline().replace('\n', '').split(' ')))
+                y = [r, g, b]
+                # for line in file.readlines():
+                #     r, g, b = list(map(float, line.replace('\n', '').split(' ')))
+                #     y.append(r)
+                #     y.append(g)
+                #     y.append(b)
+            # y = self.fix_y_len_to_6(y)
             y = np.asarray(y).astype('float32')
             batch_y.append(y)
         batch_x = np.asarray(batch_x).reshape((self.batch_size,) + self.input_shape).astype('float32')
-        batch_y = np.asarray(batch_y).reshape((self.batch_size, 6)).astype('float32')
+        batch_y = np.asarray(batch_y).reshape((self.batch_size, 3)).astype('float32')
         return batch_x, batch_y
 
     @staticmethod

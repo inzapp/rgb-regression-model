@@ -7,7 +7,6 @@ import cv2
 import tensorflow as tf
 
 from generator import RGBRegressionModelDataGenerator
-from training_view import TrainingView
 from triangular_cycle_lr import TriangularCycleLR
 from model import get_model
 
@@ -66,7 +65,7 @@ class RGBRegressionModel:
             TriangularCycleLR(
                 max_lr=self.lr,
                 min_lr=1e-4,
-                cycle_step=2000,
+                cycle_step=5000,
                 batch_size=self.batch_size,
                 train_data_generator=self.train_data_generator,
                 validation_data_generator=self.validation_data_generator)]
@@ -82,7 +81,7 @@ class RGBRegressionModel:
         return image_paths, validation_image_paths
 
     def fit(self):
-        self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.lr), loss=tf.keras.losses.MeanSquaredError())
+        self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.lr, beta_1=0.9), loss=tf.keras.losses.MeanSquaredError())
         self.model.summary()
 
         print(f'\ntrain on {len(self.train_image_paths)} samples')
