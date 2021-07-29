@@ -20,6 +20,14 @@ def get_color_image_using_rgb_values(rgb):
     return img
 
 
+def pad_rgb(img, rgb):
+    rgb = np.asarray(rgb) * 255.0
+    rgb = np.clip(rgb, 0.0, 255.0).astype('uint8')
+    b, g, r = int(rgb[2]), int(rgb[1]), int(rgb[0])
+    img = cv2.copyMakeBorder(img, 100, 100, 100, 100, cv2.BORDER_CONSTANT, value=[b, g, r])
+    return img
+
+
 def main():
     model = tf.keras.models.load_model(model_path, compile=False)
     input_shape = model.input_shape[1:]
@@ -34,9 +42,14 @@ def main():
         img_1 = get_color_image_using_rgb_values(rgb_1)
         # img_2 = get_color_image_using_rgb_values(rgb_2)
         img = cv2.resize(raw, view_size)
-        img = np.concatenate((img, img_1), axis=1)
+
+        # img = np.concatenate((img, img_1), axis=1)  # case concat
+        img = pad_rgb(img, rgb_1)
+
         cv2.imshow('rgb', img)
-        cv2.waitKey(0)
+        key = cv2.waitKey(0)
+        if key == 27:
+            return
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ import cv2
 import tensorflow as tf
 
 from generator import RGBRegressionModelDataGenerator
-from triangular_cycle_lr import TriangularCycleLR
+from lr_scheduler import LearningRateScheduler
 from model import get_model
 
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
@@ -20,18 +20,20 @@ class RGBRegressionModel:
             train_image_path,
             input_shape,
             lr,
-            epochs,
+            burn_in,
             batch_size,
+            iterations,
             pretrained_model_path='',
             validation_image_path='',
-            validation_split=0.0):
+            validation_split=0.2):
         self.train_image_path = train_image_path
         self.validation_image_path = validation_image_path
         self.validation_split = validation_split
         self.input_shape = input_shape
         self.lr = lr
-        self.epochs = epochs
+        self.burn_in = burn_in
         self.batch_size = batch_size
+        self.iterations = iterations
         self.img_type = cv2.IMREAD_COLOR
         if input_shape[-1] == 1:
             self.img_type = cv2.IMREAD_GRAYSCALE
@@ -58,17 +60,11 @@ class RGBRegressionModel:
             input_shape=self.input_shape,
             batch_size=self.batch_size)
 
-        if not (os.path.exists('checkpoints') and os.path.isdir('checkpoints')):
-            os.makedirs('checkpoints', exist_ok=True)
-
-        self.callbacks = [
-            TriangularCycleLR(
-                max_lr=self.lr,
-                min_lr=1e-4,
-                cycle_step=5000,
-                batch_size=self.batch_size,
-                train_data_generator=self.train_data_generator,
-                validation_data_generator=self.validation_data_generator)]
+        self.lr_scheduler = LearningRateScheduler(
+            lr=self.lr,
+            burn_in=self.burn_in,
+            batch_size=self.batch_size,
+            validation_data_generator_flow=self.validation_data_generator.flow())
 
     @staticmethod
     def __init_image_paths(image_path, validation_split=0.0):
@@ -81,14 +77,22 @@ class RGBRegressionModel:
         return image_paths, validation_image_paths
 
     def fit(self):
-        self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.lr, beta_1=0.9), loss=tf.keras.losses.MeanSquaredError())
+        self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.lr), loss=tf.keras.losses.MeanSquaredError())
         self.model.summary()
 
         print(f'\ntrain on {len(self.train_image_paths)} samples')
         print(f'validate on {len(self.validation_image_paths)} samples')
-        self.model.fit(
-            x=self.train_data_generator.flow(),
-            batch_size=self.batch_size,
-            epochs=self.epochs,
-            callbacks=self.callbacks)
-        cv2.destroyAllWindows()
+
+        break_flag = False
+        iteration_count = 0
+        while True:
+            for batch_x, batch_y in self.train_data_generator.flow():
+                self.lr_scheduler.update(self.model)
+                logs = self.model.train_on_batch(batch_x, batch_y, return_dict=True)
+                print(f'\r[iteration count : {iteration_count:6d}] loss => {logs["loss"]:.4f}', end='')
+                iteration_count += 1
+                if iteration_count == self.iterations:
+                    break_flag = True
+                    break
+            if break_flag:
+                break
