@@ -6,6 +6,8 @@ if __name__ == '__main__':
         validation_image_path=r'./validation',
         input_shape=(64, 64, 3),
         lr=0.001,
+        momentum=0.9,
+        decay=0.0005,
         burn_in=1000,
         batch_size=32,
         iterations=100000).fit()

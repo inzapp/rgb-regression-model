@@ -36,16 +36,16 @@ class LearningRateScheduler(tf.keras.callbacks.Callback):
             lr = self.lr
         tf.keras.backend.set_value(self.model.optimizer.lr, lr)
         self.iteration_count += 1
-        if self.iteration_count % 100 == 0:
+        if self.iteration_count % 2000 == 0:
             self.save_model()
 
     def save_model(self):
+        print('\n')
         if self.validation_data_generator_flow is None:
             self.model.save(f'checkpoints/model_{self.iteration_count}_iter.h5')
         else:
             val_loss = self.model.evaluate(x=self.validation_data_generator_flow, batch_size=self.batch_size, return_dict=True)['loss']
             self.model.save(f'checkpoints/model_{self.iteration_count}_iter_val_loss_{val_loss:.4f}.h5')
-        print('\n')
 
     def reset(self):
         self.iteration_count = 0
