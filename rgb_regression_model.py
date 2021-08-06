@@ -107,3 +107,7 @@ class RGBRegressionModel:
                     break
             if break_flag:
                 break
+
+    def predict_validation_images(self):
+        for img_path in self.validation_image_paths:
+            self.training_view.predict_and_show_result(self.model, img_path, 0)

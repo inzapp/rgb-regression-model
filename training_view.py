@@ -19,6 +19,21 @@ class TrainingView(tf.keras.callbacks.Callback):
         self.prev_time = time()
         super().__init__()
 
+    def predict_and_show_result(self, model, img_path, wait_key):
+        raw = cv2.imread(img_path, self.img_type)
+        img = cv2.resize(raw, (self.input_shape[1], self.input_shape[0]))
+        x = np.asarray(img).reshape((1,) + self.input_shape) / 255.0
+        y = model.predict_on_batch(x=x)[0]  # [conf, r, g, b, conf, r, g, b]
+
+        predicted_color_img = self.__get_predicted_color_image(y)
+        if self.img_type == cv2.IMREAD_GRAYSCALE:
+            raw = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        view = cv2.resize(raw, self.view_size)
+        view = np.concatenate((view, predicted_color_img), axis=1)
+        cv2.imshow('predicted result', view)
+        cv2.waitKey(wait_key)
+
     def update(self, model):
         self.model = model
         cur_time = time()
@@ -28,20 +43,7 @@ class TrainingView(tf.keras.callbacks.Callback):
                 img_path = random.choice(self.train_image_paths)
             else:
                 img_path = random.choice(self.validation_image_paths)
-
-            raw = cv2.imread(img_path, self.img_type)
-            img = cv2.resize(raw, (self.input_shape[1], self.input_shape[0]))
-            x = np.asarray(img).reshape((1,) + self.input_shape) / 255.0
-            y = self.model.predict_on_batch(x=x)[0]  # [conf, r, g, b, conf, r, g, b]
-
-            predicted_color_img = self.__get_predicted_color_image(y)
-            if self.img_type == cv2.IMREAD_GRAYSCALE:
-                raw = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-            view = cv2.resize(raw, self.view_size)
-            view = np.concatenate((view, predicted_color_img), axis=1)
-            cv2.imshow('Training view', view)
-            cv2.waitKey(1)
+            self.predict_and_show_result(model, img_path, 1)
 
     def on_batch_end(self, batch, logs=None):
         self.update(self.model)
