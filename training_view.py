@@ -32,9 +32,8 @@ class TrainingView(tf.keras.callbacks.Callback):
             raw = cv2.imread(img_path, self.img_type)
             img = cv2.resize(raw, (self.input_shape[1], self.input_shape[0]))
             x = np.asarray(img).reshape((1,) + self.input_shape) / 255.0
-            y = self.model.predict(x=x, batch_size=1)[0]  # [conf, r, g, b, conf, r, g, b]
+            y = self.model.predict_on_batch(x=x)[0]  # [conf, r, g, b, conf, r, g, b]
 
-            # labeled_color_img = self.__get_labeled_color_image(img_path)
             predicted_color_img = self.__get_predicted_color_image(y)
             if self.img_type == cv2.IMREAD_GRAYSCALE:
                 raw = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)

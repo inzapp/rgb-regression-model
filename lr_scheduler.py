@@ -16,6 +16,7 @@ class LearningRateScheduler(tf.keras.callbacks.Callback):
         self.iteration_count = 0
         self.batch_size = batch_size
         self.validation_data_generator_flow = validation_data_generator_flow
+        self.min_val_loss = 99999999.0
         super().__init__()
 
     def on_train_begin(self, logs=None):
@@ -45,7 +46,10 @@ class LearningRateScheduler(tf.keras.callbacks.Callback):
             self.model.save(f'checkpoints/model_{self.iteration_count}_iter.h5')
         else:
             val_loss = self.model.evaluate(x=self.validation_data_generator_flow, batch_size=self.batch_size, return_dict=True)['loss']
-            self.model.save(f'checkpoints/model_{self.iteration_count}_iter_val_loss_{val_loss:.4f}.h5')
+            if self.min_val_loss > val_loss:
+                self.min_val_loss = val_loss
+                self.model.save(f'checkpoints/model_{self.iteration_count}_iter_val_loss_{val_loss:.4f}.h5')
+                print(f'val loss => {val_loss}')
 
     def reset(self):
         self.iteration_count = 0

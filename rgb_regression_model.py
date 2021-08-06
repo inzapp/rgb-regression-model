@@ -7,6 +7,7 @@ import cv2
 import tensorflow as tf
 
 from generator import RGBRegressionModelDataGenerator
+from loss import RGBLoss
 from lr_scheduler import LearningRateScheduler
 from model import get_model
 from training_view import TrainingView
@@ -26,6 +27,7 @@ class RGBRegressionModel:
             burn_in,
             batch_size,
             iterations,
+            training_view=False,
             pretrained_model_path='',
             validation_image_path='',
             validation_split=0.2):
@@ -38,6 +40,7 @@ class RGBRegressionModel:
         self.burn_in = burn_in
         self.batch_size = batch_size
         self.iterations = iterations
+        self.training_view_flag = training_view
         self.img_type = cv2.IMREAD_COLOR
         if input_shape[-1] == 1:
             self.img_type = cv2.IMREAD_GRAYSCALE
@@ -82,22 +85,8 @@ class RGBRegressionModel:
         return image_paths, validation_image_paths
 
     def fit(self):
-        def loss(y_true, y_pred):
-            y_true_shape = tf.shape(y_true)
-
-            mask_0 = y_true[:, 0]
-            mask_0 = tf.reshape(mask_0, (y_true_shape[0], 1))
-            mask_0 = tf.repeat(mask_0, 4, axis=-1)
-
-            mask_1 = y_true[:, 4]
-            mask_1 = tf.reshape(mask_1, (y_true_shape[0], 1))
-            mask_1 = tf.repeat(mask_1, 4, axis=-1)
-
-            mask = tf.concat((mask_0, mask_1), axis=-1)
-            return tf.reduce_sum(tf.square(y_true - (y_pred * mask)))
-
         optimizer = tf.keras.optimizers.SGD(learning_rate=1e-9, momentum=self.momentum, nesterov=True)
-        self.model.compile(optimizer=optimizer, loss=loss)
+        self.model.compile(optimizer=optimizer, loss=RGBLoss())
         self.model.summary()
 
         print(f'\ntrain on {len(self.train_image_paths)} samples')
@@ -109,9 +98,10 @@ class RGBRegressionModel:
             for batch_x, batch_y in self.train_data_generator.flow():
                 self.lr_scheduler.update(self.model)
                 logs = self.model.train_on_batch(batch_x, batch_y, return_dict=True)
-                self.training_view.update(self.model)
-                print(f'\r[iteration count : {iteration_count:6d}] loss => {logs["loss"]:.4f}', end='')
                 iteration_count += 1
+                if self.training_view_flag:
+                    self.training_view.update(self.model)
+                print(f'\r[iteration count : {iteration_count:6d}] loss => {logs["loss"]:.4f}', end='')
                 if iteration_count == self.iterations:
                     break_flag = True
                     break
