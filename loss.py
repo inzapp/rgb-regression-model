@@ -4,8 +4,8 @@ from tensorflow.python.framework.ops import convert_to_tensor_v2
 
 class RGBLoss(tf.keras.losses.Loss):
 
-    def __init__(self, lambda_confidence=0.5):
-        self.lambda_confidence = lambda_confidence
+    def __init__(self, lambda_rgb=5.0):
+        self.lambda_rgb = lambda_rgb
         super().__init__()
 
     def call(self, y_true, y_pred):
@@ -36,7 +36,7 @@ class RGBLoss(tf.keras.losses.Loss):
             if tf.greater_equal(confidence_index, num_output_node):
                 break
 
-        return (confidence_loss * self.lambda_confidence) + rgb_loss
+        return confidence_loss + (rgb_loss * self.lambda_rgb)
 
     # def call(self, y_true, y_pred):
     #     y_pred = convert_to_tensor_v2(y_pred)
