@@ -19,7 +19,8 @@ class RGBLoss(tf.keras.losses.Loss):
         while tf.constant(True, dtype=tf.dtypes.bool):
             confidence_true = y_true[:, confidence_index]
             confidence_pred = y_pred[:, confidence_index]
-            cur_confidence_loss = tf.reduce_sum(tf.square(confidence_true - confidence_pred)) / batch_size_f
+            # cur_confidence_loss = tf.reduce_sum(tf.square(confidence_true - confidence_pred)) / batch_size_f
+            cur_confidence_loss = tf.reduce_sum(-tf.math.log(1.0 - tf.abs(confidence_true - confidence_pred))) / batch_size_f
             confidence_loss += cur_confidence_loss
 
             rgb_mask = tf.reshape(confidence_true, (batch_size, 1))
@@ -27,7 +28,8 @@ class RGBLoss(tf.keras.losses.Loss):
 
             rgb_true = y_true[:, confidence_index + 1: confidence_index + 4]
             rgb_pred = y_pred[:, confidence_index + 1: confidence_index + 4]
-            cur_rgb_loss = tf.reduce_sum(tf.square((rgb_true * rgb_mask) - (rgb_pred * rgb_mask))) / batch_size_f
+            # cur_rgb_loss = tf.reduce_sum(tf.square((rgb_true * rgb_mask) - (rgb_pred * rgb_mask))) / batch_size_f
+            cur_rgb_loss = tf.reduce_sum(-tf.math.log(1.0 - tf.abs(rgb_true - rgb_pred))) / batch_size_f
             rgb_loss += cur_rgb_loss
 
             confidence_index = tf.add(confidence_index, tf.constant(4, dtype=tf.dtypes.int32))
