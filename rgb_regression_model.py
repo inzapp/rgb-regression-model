@@ -71,6 +71,7 @@ class RGBRegressionModel:
         self.lr_scheduler = LearningRateScheduler(
             lr=self.lr,
             burn_in=self.burn_in,
+            iterations=self.iterations,
             batch_size=self.batch_size,
             validation_data_generator_flow=self.validation_data_generator.flow())
 

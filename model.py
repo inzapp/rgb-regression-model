@@ -14,6 +14,7 @@ def get_model(input_shape, decay):
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.MaxPool2D()(x)
 
+    x = tf.keras.layers.SpatialDropout2D(0.0625)(x)
     x = tf.keras.layers.Conv2D(
         filters=32,
         kernel_size=3,
@@ -21,10 +22,11 @@ def get_model(input_shape, decay):
         padding='same',
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
         use_bias=False)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
+    # x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.MaxPool2D()(x)
 
+    x = tf.keras.layers.SpatialDropout2D(0.0625)(x)
     x = tf.keras.layers.Conv2D(
         filters=64,
         kernel_size=3,
@@ -32,10 +34,11 @@ def get_model(input_shape, decay):
         padding='same',
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
         use_bias=False)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
+    # x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.MaxPool2D()(x)
 
+    x = tf.keras.layers.SpatialDropout2D(0.0625)(x)
     x = tf.keras.layers.Conv2D(
         filters=128,
         kernel_size=3,
@@ -43,10 +46,11 @@ def get_model(input_shape, decay):
         padding='same',
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
         use_bias=False)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
+    # x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.MaxPool2D()(x)
 
+    x = tf.keras.layers.SpatialDropout2D(0.0625)(x)
     x = tf.keras.layers.Conv2D(
         filters=256,
         kernel_size=3,
@@ -58,7 +62,7 @@ def get_model(input_shape, decay):
     x = tf.keras.layers.ReLU()(x)
 
     x = tf.keras.layers.Conv2D(
-        filters=8,  # conf, r, g, b, conf, r, g, b
+        filters=3,  # conf, r, g, b, conf, r, g, b
         kernel_size=1,
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
         activation='sigmoid')(x)

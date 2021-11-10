@@ -9,7 +9,7 @@ import tensorflow as tf
 class TrainingView(tf.keras.callbacks.Callback):
     def __init__(self, model, train_image_paths, validation_image_paths):
         self.view_size = (256, 256)
-        self.confidence_threshold = 0.25
+        self.confidence_threshold = 0.5
         self.input_shape = model.input_shape[1:]
         self.img_type = cv2.IMREAD_COLOR
         if self.input_shape[-1] == 1:

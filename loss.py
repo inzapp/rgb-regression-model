@@ -33,3 +33,9 @@ class RGBLoss(tf.keras.losses.Loss):
                 break
 
         return confidence_loss + (rgb_loss * self.lambda_rgb)
+
+    # def call(self, y_true, y_pred):
+    #     y_true_shape = tf.shape(y_true)
+    #     batch_size = y_true_shape[0]
+    #     batch_size_f = tf.cast(batch_size, tf.float32)
+    #     return tf.reduce_sum(-tf.math.log(1.0 - tf.abs(y_true - y_pred))) / batch_size_f

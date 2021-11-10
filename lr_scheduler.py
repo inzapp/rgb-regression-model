@@ -9,10 +9,12 @@ class LearningRateScheduler(tf.keras.callbacks.Callback):
             self,
             lr=0.001,
             burn_in=1000,
+            iterations=320000,
             batch_size=32,
             validation_data_generator_flow=None):
         self.lr = lr
         self.burn_in = burn_in
+        self.iterations = iterations
         self.iteration_count = 0
         self.batch_size = batch_size
         self.validation_data_generator_flow = validation_data_generator_flow
@@ -29,15 +31,16 @@ class LearningRateScheduler(tf.keras.callbacks.Callback):
     def update(self, model):
         self.model = model
         if self.iteration_count < self.burn_in:
-            lr = self.lr * self.batch_size / self.burn_in
-        elif self.iteration_count < self.burn_in * 2:
-            warmup_lr = self.lr * self.batch_size / self.burn_in
-            lr = warmup_lr + 0.5 * (self.lr - warmup_lr) * (1.0 + np.cos(np.pi * (self.iteration_count - self.burn_in) / self.burn_in + np.pi))
+            lr = self.lr * pow(float(self.iteration_count) / self.burn_in, 4)
+        elif self.iteration_count == int(self.iterations * 0.8):
+            lr = self.lr * 0.1
+        elif self.iteration_count == int(self.iterations * 0.9):
+            lr = self.lr * 0.01
         else:
             lr = self.lr
         tf.keras.backend.set_value(self.model.optimizer.lr, lr)
         self.iteration_count += 1
-        if self.iteration_count % 2000 == 0:
+        if self.iteration_count % 1000 == 0:
             self.save_model()
 
     def save_model(self):
