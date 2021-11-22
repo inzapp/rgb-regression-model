@@ -86,7 +86,7 @@ class RGBRegressionModel:
         return image_paths, validation_image_paths
 
     def fit(self):
-        optimizer = tf.keras.optimizers.SGD(learning_rate=1e-9, momentum=self.momentum, nesterov=True)
+        optimizer = tf.keras.optimizers.SGD(learning_rate=0.0, momentum=self.momentum, nesterov=True)
         self.model.compile(optimizer=optimizer, loss=RGBLoss())
         self.model.summary()
 
