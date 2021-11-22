@@ -46,9 +46,12 @@ class GeneratorFlow(tf.keras.utils.Sequence):
             label_path = f'{cur_img_path[:-4]}.txt'
             with open(label_path, 'rt') as file:
                 for line in file.readlines():
+                    # one color only
                     r, g, b = list(map(float, line.replace('\n', '').split(' ')))
                     y += [r, g, b]
                     break
+
+                    # with confidence
                     # confidence, r, g, b = list(map(float, line.replace('\n', '').split(' ')))
                     # y += [confidence, r, g, b]
             y = np.asarray(y).astype('float32')
@@ -64,4 +67,7 @@ class GeneratorFlow(tf.keras.utils.Sequence):
         np.random.shuffle(self.random_indexes)
 
     def __load_img(self, path):
-        return path, cv2.imread(path, cv2.IMREAD_GRAYSCALE if self.input_shape[2] == 1 else cv2.IMREAD_COLOR)
+        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE if self.input_shape[2] == 1 else cv2.IMREAD_COLOR)
+        if self.input_shape[2] != 2:  # channel swap to rgb format
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return path, img
