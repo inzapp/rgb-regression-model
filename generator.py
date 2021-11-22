@@ -68,6 +68,6 @@ class GeneratorFlow(tf.keras.utils.Sequence):
 
     def __load_img(self, path):
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE if self.input_shape[2] == 1 else cv2.IMREAD_COLOR)
-        if self.input_shape[2] != 2:  # channel swap to rgb format
+        if self.input_shape[2] == 3:  # channel swap to rgb format
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         return path, img
