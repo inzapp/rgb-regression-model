@@ -20,7 +20,9 @@ class TrainingView(tf.keras.callbacks.Callback):
         super().__init__()
 
     def predict_and_show_result(self, model, img_path, wait_key):
-        raw = cv2.imread(img_path, self.img_type)
+        bgr_raw = cv2.imread(img_path, self.img_type)
+        if self.input_shape[-1] == 3:
+            raw = cv2.cvtColor(bgr_raw, cv2.COLOR_BGR2RGB)
         img = cv2.resize(raw, (self.input_shape[1], self.input_shape[0]))
         x = np.asarray(img).reshape((1,) + self.input_shape) / 255.0
         y = model.predict_on_batch(x=x)[0]  # [conf, r, g, b, conf, r, g, b]
@@ -29,7 +31,7 @@ class TrainingView(tf.keras.callbacks.Callback):
         if self.img_type == cv2.IMREAD_GRAYSCALE:
             raw = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        view = cv2.resize(raw, self.view_size)
+        view = cv2.resize(bgr_raw, self.view_size)
         view = np.concatenate((view, predicted_color_img), axis=1)
         cv2.imshow('predicted result', view)
         cv2.waitKey(wait_key)

@@ -47,17 +47,17 @@ class GeneratorFlow(tf.keras.utils.Sequence):
             with open(label_path, 'rt') as file:
                 for line in file.readlines():
                     # one color only
-                    r, g, b = list(map(float, line.replace('\n', '').split(' ')))
-                    y += [r, g, b]
-                    break
+                    # r, g, b = list(map(float, line.replace('\n', '').split(' ')))
+                    # y += [r, g, b]
+                    # break
 
                     # with confidence
-                    # confidence, r, g, b = list(map(float, line.replace('\n', '').split(' ')))
-                    # y += [confidence, r, g, b]
+                    confidence, r, g, b = list(map(float, line.replace('\n', '').split(' ')))
+                    y += [confidence, r, g, b]
             y = np.asarray(y).astype('float32')
             batch_y.append(y)
         batch_x = np.asarray(batch_x).reshape((self.batch_size,) + self.input_shape).astype('float32')
-        batch_y = np.asarray(batch_y).reshape((self.batch_size, 3)).astype('float32')
+        batch_y = np.asarray(batch_y).reshape((self.batch_size, 8)).astype('float32')
         return batch_x, batch_y
 
     def __len__(self):

@@ -74,7 +74,7 @@ def get_model(input_shape, decay):
     x = tf.keras.layers.ReLU()(x)
 
     x = tf.keras.layers.Conv2D(
-        filters=3,  # conf, r, g, b, conf, r, g, b
+        filters=8,  # conf, r, g, b, conf, r, g, b
         kernel_size=1,
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
         activation='sigmoid')(x)
