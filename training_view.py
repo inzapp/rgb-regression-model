@@ -9,7 +9,7 @@ import tensorflow as tf
 class TrainingView(tf.keras.callbacks.Callback):
     def __init__(self, model, train_image_paths, validation_image_paths):
         self.view_size = (256, 256)
-        self.confidence_threshold = 0.5
+        self.confidence_threshold = 0.3
         self.input_shape = model.input_shape[1:]
         self.img_type = cv2.IMREAD_COLOR
         if self.input_shape[-1] == 1:
@@ -26,6 +26,8 @@ class TrainingView(tf.keras.callbacks.Callback):
         img = cv2.resize(raw, (self.input_shape[1], self.input_shape[0]))
         x = np.asarray(img).reshape((1,) + self.input_shape) / 255.0
         y = model.predict_on_batch(x=x)[0]  # [conf, r, g, b, conf, r, g, b]
+        if len(y) == 3:
+            y = [1.0] + y  # add fake confidence if output has no confidence
 
         predicted_color_img = self.__get_predicted_color_image(y)
         if self.img_type == cv2.IMREAD_GRAYSCALE:
@@ -50,25 +52,15 @@ class TrainingView(tf.keras.callbacks.Callback):
     def on_batch_end(self, batch, logs=None):
         self.update(self.model)
 
-    def __get_labeled_color_image(self, img_path):
-        label_path = f'{img_path[:-4]}.txt'
-        img = None
-        with open(label_path, 'rt') as f:
-            lines = f.readlines()
-        for line in lines:
-            r, g, b = list(map(float, line.replace('\n', '').split()))
-            color_img = self.__get_color_image_using_rgb_values([r, g, b])
-            if img is None:
-                img = color_img
-            else:
-                img = np.concatenate((img, color_img), axis=1)
-        return img
-
     def __get_predicted_color_image(self, y):
-        confidence_0, r0, g0, b0, confidence_1, r1, g1, b1 = y
-        predicted_color_image_0 = self.__get_color_image_using_rgb_values([confidence_0, r0, g0, b0])
-        predicted_color_image_1 = self.__get_color_image_using_rgb_values([confidence_1, r1, g1, b1])
-        return np.concatenate((predicted_color_image_0, predicted_color_image_1), axis=1)
+        if len(y) == 4:  # one color
+            confidence0, r0, g0, b0 = y
+            return self.__get_color_image_using_rgb_values([confidence0, r0, g0, b0])
+        else:  # two color
+            confidence_0, r0, g0, b0, confidence_1, r1, g1, b1 = y
+            predicted_color_image_0 = self.__get_color_image_using_rgb_values([confidence_0, r0, g0, b0])
+            predicted_color_image_1 = self.__get_color_image_using_rgb_values([confidence_1, r1, g1, b1])
+            return np.concatenate((predicted_color_image_0, predicted_color_image_1), axis=1)
 
     def __get_under_confidence_image(self):
         size = 7
@@ -83,9 +75,9 @@ class TrainingView(tf.keras.callbacks.Callback):
         return img
 
     def __get_color_image_using_rgb_values(self, confidence_rgb):
-        # bgr ordering for opencv
         confidence, r, g, b = confidence_rgb
         if confidence > self.confidence_threshold:
+            # bgr ordering for opencv imshow function
             img = np.asarray([b, g, r]).astype('float32').reshape((1, 1, 3)) * 255.0
             img = np.clip(img, 0.0, 255.0).astype('uint8')
             img = cv2.resize(img, self.view_size)

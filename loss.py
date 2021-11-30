@@ -4,7 +4,7 @@ from tensorflow.python.framework.ops import convert_to_tensor_v2
 
 class RGBLoss(tf.keras.losses.Loss):
 
-    def __init__(self, lambda_rgb=5.0):
+    def __init__(self, lambda_rgb=2.0):
         self.lambda_rgb = lambda_rgb
         super().__init__()
 
@@ -21,8 +21,11 @@ class RGBLoss(tf.keras.losses.Loss):
             confidence_pred = y_pred[:, confidence_index]
             confidence_loss += tf.reduce_sum(tf.square(confidence_true - confidence_pred)) / batch_size_f
 
-            rgb_true = y_true[:, confidence_index + 1: confidence_index + 4]
-            rgb_pred = y_pred[:, confidence_index + 1: confidence_index + 4]
+            rgb_mask = tf.reshape(confidence_true, (batch_size, 1))
+            rgb_mask = tf.repeat(rgb_mask, 3, axis=-1)
+
+            rgb_true = y_true[:, confidence_index + 1: confidence_index + 4] * rgb_mask
+            rgb_pred = y_pred[:, confidence_index + 1: confidence_index + 4] * rgb_mask
             rgb_loss += tf.reduce_sum(tf.square(rgb_true - rgb_pred)) / batch_size_f
 
             confidence_index = tf.add(confidence_index, tf.constant(4, dtype=tf.dtypes.int32))

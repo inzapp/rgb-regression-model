@@ -42,22 +42,23 @@ class GeneratorFlow(tf.keras.utils.Sequence):
             x = np.asarray(x).reshape(self.input_shape).astype('float32') / 255.0
             batch_x.append(x)
 
-            y = []
+            y = np.zeros((4,), dtype=np.float32)
             label_path = f'{cur_img_path[:-4]}.txt'
             with open(label_path, 'rt') as file:
+                index = 0
                 for line in file.readlines():
-                    # one color only
-                    # r, g, b = list(map(float, line.replace('\n', '').split(' ')))
-                    # y += [r, g, b]
-                    # break
-
-                    # with confidence
                     confidence, r, g, b = list(map(float, line.replace('\n', '').split(' ')))
-                    y += [confidence, r, g, b]
+                    y[index] = confidence
+                    y[index + 1] = r
+                    y[index + 2] = g
+                    y[index + 3] = b
+                    index += 4
+                    break  # one color only
+
             y = np.asarray(y).astype('float32')
             batch_y.append(y)
         batch_x = np.asarray(batch_x).reshape((self.batch_size,) + self.input_shape).astype('float32')
-        batch_y = np.asarray(batch_y).reshape((self.batch_size, 8)).astype('float32')
+        batch_y = np.asarray(batch_y).reshape((self.batch_size, 4)).astype('float32')
         return batch_x, batch_y
 
     def __len__(self):
