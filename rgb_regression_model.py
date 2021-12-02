@@ -96,6 +96,7 @@ class RGBRegressionModel:
         break_flag = False
         iteration_count = 0
         while True:
+            self.train_data_generator.flow().shuffle()
             for batch_x, batch_y in self.train_data_generator.flow():
                 self.lr_scheduler.update(self.model)
                 logs = self.model.train_on_batch(batch_x, batch_y, return_dict=True)
