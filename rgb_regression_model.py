@@ -77,8 +77,7 @@ class RGBRegressionModel:
 
     @staticmethod
     def __init_image_paths(image_path, validation_split=0.0):
-        all_image_paths = sorted(glob(f'{image_path}/*.jpg'))
-        all_image_paths += sorted(glob(f'{image_path}/*.png'))
+        all_image_paths = sorted(glob(f'{image_path}/**/*.jpg', recursive=True))
         random.shuffle(all_image_paths)
         num_cur_class_train_images = int(len(all_image_paths) * (1.0 - validation_split))
         image_paths = all_image_paths[:num_cur_class_train_images]
