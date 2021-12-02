@@ -40,8 +40,9 @@ class LearningRateScheduler(tf.keras.callbacks.Callback):
             lr = self.lr
         tf.keras.backend.set_value(self.model.optimizer.lr, lr)
         self.iteration_count += 1
-        if self.iteration_count % 1000 == 0:
-            self.save_model()
+        if self.iteration_count > int(self.iterations * 0.8):  # TODO : tmp, save model after step decay
+            if self.iteration_count % 1000 == 0:
+                self.save_model()
 
     def save_model(self):
         print('\n')
