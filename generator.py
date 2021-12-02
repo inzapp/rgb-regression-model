@@ -42,29 +42,43 @@ class GeneratorFlow(tf.keras.utils.Sequence):
             x = np.asarray(x).reshape(self.input_shape).astype('float32') / 255.0
             batch_x.append(x)
 
-            y = np.zeros((4,), dtype=np.float32)
+            y = np.zeros((3,), dtype=np.float32)
             label_path = f'{cur_img_path[:-4]}.txt'
             with open(label_path, 'rt') as file:
                 index = 0
                 for line in file.readlines():
-                    confidence, r, g, b = list(map(float, line.replace('\n', '').split(' ')))
-                    y[index] = confidence
-                    y[index + 1] = r
-                    y[index + 2] = g
-                    y[index + 3] = b
-                    index += 4
+                    confidence = 1.0
+                    label = list(map(float, line.replace('\n', '').split(' ')))
+                    if len(label) == 3:
+                        r, g, b = label
+                        y[0] = r
+                        y[1] = g
+                        y[2] = b
+                    elif len(label) == 4:
+                        confidence, r, g, b = label
+                        # y[index] = confidence
+                        # y[index + 1] = r
+                        # y[index + 2] = g
+                        # y[index + 3] = b
+                        y[0] = r
+                        y[1] = g
+                        y[2] = b
+                        # index += 4
                     break  # one color only
 
             y = np.asarray(y).astype('float32')
             batch_y.append(y)
         batch_x = np.asarray(batch_x).reshape((self.batch_size,) + self.input_shape).astype('float32')
-        batch_y = np.asarray(batch_y).reshape((self.batch_size, 4)).astype('float32')
+        batch_y = np.asarray(batch_y).reshape((self.batch_size, 3)).astype('float32')
         return batch_x, batch_y
 
     def __len__(self):
         return int(np.floor(len(self.image_paths) / self.batch_size))
 
     def on_epoch_end(self):
+        self.shuffle()
+
+    def shuffle(self):
         np.random.shuffle(self.random_indexes)
 
     def __load_img(self, path):
