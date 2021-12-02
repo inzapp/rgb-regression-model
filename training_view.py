@@ -9,7 +9,7 @@ import tensorflow as tf
 class TrainingView(tf.keras.callbacks.Callback):
     def __init__(self, model, train_image_paths, validation_image_paths):
         self.view_size = (256, 256)
-        self.confidence_threshold = 0.3
+        self.confidence_threshold = 0.5
         self.input_shape = model.input_shape[1:]
         self.img_type = cv2.IMREAD_COLOR
         if self.input_shape[-1] == 1:
@@ -25,9 +25,11 @@ class TrainingView(tf.keras.callbacks.Callback):
             raw = cv2.cvtColor(bgr_raw, cv2.COLOR_BGR2RGB)
         img = cv2.resize(raw, (self.input_shape[1], self.input_shape[0]))
         x = np.asarray(img).reshape((1,) + self.input_shape) / 255.0
-        y = model.predict_on_batch(x=x)[0]  # [conf, r, g, b, conf, r, g, b]
+        y = list(model.predict_on_batch(x=x)[0])  # [conf, r, g, b, conf, r, g, b]
+        if wait_key == 0:
+            self.print_y(y)
         if len(y) == 3:
-            y = [1.0] + y  # add fake confidence if output has no confidence
+            y.insert(0, 1.0)  # add fake confidence if output has no confidence
 
         predicted_color_img = self.__get_predicted_color_image(y)
         if self.img_type == cv2.IMREAD_GRAYSCALE:
@@ -36,7 +38,17 @@ class TrainingView(tf.keras.callbacks.Callback):
         view = cv2.resize(bgr_raw, self.view_size)
         view = np.concatenate((view, predicted_color_img), axis=1)
         cv2.imshow('predicted result', view)
-        cv2.waitKey(wait_key)
+        key = cv2.waitKey(wait_key)
+        if wait_key == 0 and key == 27:
+            exit(0)
+
+    def print_y(self, y):
+        print('[', end='')
+        for i in range(len(y)):
+            print(f'{y[i]:.4f}', end='')
+            if i != len(y) - 1:
+                print(', ', end='')
+        print(']')
 
     def update(self, model):
         self.model = model
