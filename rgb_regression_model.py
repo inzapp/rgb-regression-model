@@ -27,6 +27,7 @@ class RGBRegressionModel:
             burn_in,
             batch_size,
             iterations,
+            train_type='one_color',
             training_view=False,
             pretrained_model_path='',
             validation_image_path='',
@@ -40,13 +41,22 @@ class RGBRegressionModel:
         self.burn_in = burn_in
         self.batch_size = batch_size
         self.iterations = iterations
+        self.train_type = train_type
         self.training_view_flag = training_view
         self.img_type = cv2.IMREAD_COLOR
         if input_shape[-1] == 1:
             self.img_type = cv2.IMREAD_GRAYSCALE
 
+        output_node_size = 0
+        if self.train_type == 'one_color':
+            output_node_size = 3  # [r, g, b]
+        elif self.train_type == 'one_color_with_confidence':
+            output_node_size = 4  # [objectness_score, r, g, b]
+        elif self.train_type == 'two_color':
+            output_node_size = 8  # [objectness_score, r, g, b, second_rgb_score, r, g, b]
+
         if pretrained_model_path == '':
-            self.model = get_model(self.input_shape, decay=decay)
+            self.model = get_model(self.input_shape, decay=decay, output_node_size=output_node_size)
         else:
             self.model = tf.keras.models.load_model(pretrained_model_path, compile=False)
 
@@ -61,11 +71,15 @@ class RGBRegressionModel:
         self.train_data_generator = RGBRegressionModelDataGenerator(
             image_paths=self.train_image_paths,
             input_shape=self.input_shape,
-            batch_size=self.batch_size)
+            batch_size=self.batch_size,
+            train_type=self.train_type,
+            output_node_size=output_node_size)
         self.validation_data_generator = RGBRegressionModelDataGenerator(
             image_paths=self.validation_image_paths,
             input_shape=self.input_shape,
-            batch_size=self.batch_size)
+            batch_size=self.batch_size,
+            train_type=self.train_type,
+            output_node_size=output_node_size)
 
         self.training_view = TrainingView(self.model, self.train_image_paths, self.validation_image_paths)
         self.lr_scheduler = LearningRateScheduler(

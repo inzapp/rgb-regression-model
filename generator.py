@@ -6,18 +6,20 @@ from cv2 import cv2
 
 
 class RGBRegressionModelDataGenerator:
-    def __init__(self, image_paths, input_shape, batch_size):
-        self.generator_flow = GeneratorFlow(image_paths, input_shape, batch_size)
+    def __init__(self, image_paths, input_shape, batch_size, output_node_size, train_type):
+        self.generator_flow = GeneratorFlow(image_paths, input_shape, batch_size, output_node_size, train_type)
 
     def flow(self):
         return self.generator_flow
 
 
 class GeneratorFlow(tf.keras.utils.Sequence):
-    def __init__(self, image_paths, input_shape, batch_size):
+    def __init__(self, image_paths, input_shape, batch_size, output_node_size, train_type):
         self.image_paths = image_paths
         self.input_shape = input_shape
         self.batch_size = batch_size
+        self.train_type = train_type
+        self.output_node_size = output_node_size
         self.random_indexes = np.arange(len(self.image_paths))
         self.pool = ThreadPoolExecutor(8)
         self.generator = tf.keras.preprocessing.image.ImageDataGenerator(
@@ -42,29 +44,38 @@ class GeneratorFlow(tf.keras.utils.Sequence):
             x = np.asarray(x).reshape(self.input_shape).astype('float32') / 255.0
             batch_x.append(x)
 
-            y = np.zeros((3,), dtype=np.float32)
+            y = np.zeros((self.output_node_size,), dtype=np.float32)
             label_path = f'{cur_img_path[:-4]}.txt'
             with open(label_path, 'rt') as file:
                 index = 0
                 for line in file.readlines():
-                    confidence = 1.0
+                    confidence, r, g, b = 1.0, 0.0, 0.0, 0.0
                     label = list(map(float, line.replace('\n', '').split(' ')))
-                    if len(label) == 3:
-                        r, g, b = label
+
+                    if self.train_type == 'one_color':
+                        if len(label) == 3:
+                            r, g, b = label
+                        elif len(label) == 4:
+                            confidence, r, g, b = label
+                        else:
+                            print(f'invalid label. label length is {len(label)} : {label_path}')
                         y[0] = r
                         y[1] = g
                         y[2] = b
-                    elif len(label) == 4:
-                        confidence, r, g, b = label
-                        # y[index] = confidence
-                        # y[index + 1] = r
-                        # y[index + 2] = g
-                        # y[index + 3] = b
-                        y[0] = r
-                        y[1] = g
-                        y[2] = b
-                        # index += 4
-                    break  # one color only
+                        break
+                    else:
+                        if len(label) == 4:
+                            confidence, r, g, b = label
+                        else:
+                            print(f'invalid label. label length is {len(label)} : {label_path}')
+                        y[index] = confidence
+                        y[index + 1] = r
+                        y[index + 2] = g
+                        y[index + 3] = b
+                        if self.train_type == 'one_color_with_confidence':
+                            break
+                        elif self.train_type == 'two_color':
+                            index += 4
 
             y = np.asarray(y).astype('float32')
             batch_y.append(y)
@@ -83,6 +94,6 @@ class GeneratorFlow(tf.keras.utils.Sequence):
 
     def __load_img(self, path):
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE if self.input_shape[2] == 1 else cv2.IMREAD_COLOR)
-        if self.input_shape[2] == 3:  # channel swap to rgb format
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        if self.input_shape[2] == 3:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # rb swap
         return path, img

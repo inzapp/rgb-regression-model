@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def get_model(input_shape, decay):
+def get_model(input_shape, decay, output_node_size):
     input_layer = tf.keras.layers.Input(shape=input_shape)
     x = tf.keras.layers.Conv2D(
         filters=16,
@@ -74,7 +74,7 @@ def get_model(input_shape, decay):
     x = tf.keras.layers.ReLU()(x)
 
     x = tf.keras.layers.Conv2D(
-        filters=4,  # conf, r, g, b, conf, r, g, b
+        filters=output_node_size,
         kernel_size=1,
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
         activation='sigmoid')(x)
