@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow.keras.backend as K
 from tensorflow.python.framework.ops import convert_to_tensor_v2
 
 
@@ -40,34 +41,26 @@ class RGBLoss(tf.keras.losses.Loss):
     #     batch_size_f = tf.cast(batch_size, tf.float32)
     #     return tf.reduce_sum(tf.square(y_true - y_pred)) / batch_size_f
 
-    # def call(self, y_true, y_pred):
-    #     y_true_shape = tf.shape(y_true)
-    #     batch_size = y_true_shape[0]
-    #     batch_size_f = tf.cast(batch_size, tf.float32)
-
-    #     r_true, r_pred = y_true[:, 0], y_pred[:, 0]
-    #     g_true, g_pred = y_true[:, 1], y_pred[:, 1]
-    #     b_true, b_pred = y_true[:, 2], y_pred[:, 2]
-
-    #     # yuv_y_true = 0.299 * r_true + 0.587 * g_true + 0.114 * b_true
-    #     # yuv_u_true = (b_true - yuv_y_true) * 0.565
-    #     # yuv_v_true = (r_true - yuv_y_true) * 0.713
-
-    #     # yuv_y_pred = 0.299 * r_pred + 0.587 * g_pred + 0.114 * b_pred
-    #     # yuv_u_pred = (b_pred - yuv_y_pred) * 0.565
-    #     # yuv_v_pred = (r_pred - yuv_y_pred) * 0.713
-
-    #     yuv_y_true = r_true * 0.299000 + g_true * 0.587000 + b_true * 0.114000
-    #     yuv_u_true = r_true * -0.168736 + g_true * -0.331264 + b_true * 0.500000 + 0.5
-    #     yuv_v_true = r_true * 0.500000 + g_true * -0.418688 + b_true * -0.081312 + 0.5
-
-    #     yuv_y_pred = r_pred * 0.299000 + g_pred * 0.587000 + b_pred * 0.114000
-    #     yuv_u_pred = r_pred * -0.168736 + g_pred * -0.331264 + b_pred * 0.500000 + 0.5
-    #     yuv_v_pred = r_pred * 0.500000 + g_pred * -0.418688 + b_pred * -0.081312 + 0.5
-
-    #     yuv_true = tf.concat([yuv_y_true, yuv_u_true, yuv_v_true], axis=-1)
-    #     yuv_pred = tf.concat([yuv_y_pred, yuv_u_pred, yuv_v_pred], axis=-1)
-    #     return tf.keras.losses.MeanSquaredError()(yuv_true, yuv_pred)
-
     def call(self, y_true, y_pred):
-        return tf.keras.losses.MeanSquaredError()(y_true, y_pred) 
+        y_true_shape = tf.shape(y_true)
+        batch_size = y_true_shape[0]
+        batch_size_f = tf.cast(batch_size, tf.float32)
+
+        r_true, r_pred = y_true[:, 0], y_pred[:, 0]
+        g_true, g_pred = y_true[:, 1], y_pred[:, 1]
+        b_true, b_pred = y_true[:, 2], y_pred[:, 2]
+
+        yuv_y_true = r_true *  0.299000 + g_true *  0.587000 + b_true *  0.114000
+        yuv_u_true = r_true * -0.168736 + g_true * -0.331264 + b_true *  0.500000 + 0.5
+        yuv_v_true = r_true *  0.500000 + g_true * -0.418688 + b_true * -0.081312 + 0.5
+
+        yuv_y_pred = r_pred *  0.299000 + g_pred *  0.587000 + b_pred *  0.114000
+        yuv_u_pred = r_pred * -0.168736 + g_pred * -0.331264 + b_pred *  0.500000 + 0.5
+        yuv_v_pred = r_pred *  0.500000 + g_pred * -0.418688 + b_pred * -0.081312 + 0.5
+
+        yuv_true = tf.concat([yuv_y_true, yuv_u_true, yuv_v_true], axis=-1)
+        yuv_pred = tf.concat([yuv_y_pred, yuv_u_pred, yuv_v_pred], axis=-1)
+        return -K.log(1.0 + K.epsilon() - K.abs(yuv_true - yuv_pred))
+
+    # def call(self, y_true, y_pred):
+    #     return K.square(y_true - y_pred)
