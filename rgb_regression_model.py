@@ -7,7 +7,7 @@ import cv2
 import tensorflow as tf
 
 from generator import RGBRegressionModelDataGenerator
-from loss import RGBLoss
+from loss import confidence_rgb_loss, yuv_loss
 from lr_scheduler import LearningRateScheduler
 from model import get_model
 from training_view import TrainingView
@@ -98,30 +98,36 @@ class RGBRegressionModel:
         validation_image_paths = all_image_paths[num_cur_class_train_images:]
         return image_paths, validation_image_paths
 
+    @tf.function
+    def compute_gradient(self, model, optimizer, x, y_true, loss_fn):
+        with tf.GradientTape() as tape:
+            y_pred = model(x, training=True)
+            loss = loss_fn(y_true, y_pred)
+            mean_loss = tf.reduce_mean(loss)
+        gradients = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+        return mean_loss
+
     def fit(self):
-        optimizer = tf.keras.optimizers.SGD(learning_rate=0.0, momentum=self.momentum, nesterov=True)
-        self.model.compile(optimizer=optimizer, loss=RGBLoss())
+        optimizer = tf.keras.optimizers.Adam(lr=self.lr, beta_1=self.momentum)
         self.model.summary()
 
         print(f'\ntrain on {len(self.train_image_paths)} samples')
         print(f'validate on {len(self.validation_image_paths)} samples')
 
-        break_flag = False
         iteration_count = 0
+        loss_fn = yuv_loss if self.train_type == 'one_color' else confidence_rgb_loss
         while True:
             self.train_data_generator.flow().shuffle()
             for batch_x, batch_y in self.train_data_generator.flow():
-                self.lr_scheduler.update(self.model)
-                logs = self.model.train_on_batch(batch_x, batch_y, return_dict=True)
+                loss = self.compute_gradient(self.model, optimizer, batch_x, batch_y, loss_fn)
                 iteration_count += 1
                 if self.training_view_flag:
                     self.training_view.update(self.model)
-                print(f'\r[iteration count : {iteration_count:6d}] loss => {logs["loss"]:.4f}', end='')
+                print(f'\r[iteration count : {iteration_count:6d}] loss => {loss:.4f}', end='')
                 if iteration_count == self.iterations:
-                    break_flag = True
-                    break
-            if break_flag:
-                break
+                    print('train end successfully')
+                    return
 
     def predict_validation_images(self):
         for img_path in self.validation_image_paths:
