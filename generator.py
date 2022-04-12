@@ -80,7 +80,7 @@ class GeneratorFlow(tf.keras.utils.Sequence):
             y = np.asarray(y).astype('float32')
             batch_y.append(y)
         batch_x = np.asarray(batch_x).reshape((self.batch_size,) + self.input_shape).astype('float32')
-        batch_y = np.asarray(batch_y).reshape((self.batch_size, 3)).astype('float32')
+        batch_y = np.asarray(batch_y).reshape((self.batch_size, self.output_node_size)).astype('float32')
         return batch_x, batch_y
 
     def __len__(self):
