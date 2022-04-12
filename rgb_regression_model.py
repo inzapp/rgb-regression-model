@@ -6,6 +6,7 @@ from time import time
 import cv2
 import tensorflow as tf
 
+from tqdm import tqdm
 from generator import RGBRegressionModelDataGenerator
 from loss import confidence_rgb_loss, yuv_loss
 from model import get_model
@@ -43,6 +44,7 @@ class RGBRegressionModel:
         if input_shape[-1] == 1:
             self.img_type = cv2.IMREAD_GRAYSCALE
 
+        os.makedirs('checkpoints', exist_ok=True)
         output_node_size = 0
         if self.train_type == 'one_color':
             output_node_size = 3  # [r, g, b]
@@ -97,6 +99,13 @@ class RGBRegressionModel:
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return mean_loss
 
+    def evaluate(self, model, generator_flow, loss_fn):
+        loss_sum = 0.0
+        for batch_x, batch_y in tqdm(generator_flow):
+            y_pred = model(batch_x, training=False)
+            loss_sum += tf.reduce_mean(loss_fn(batch_y, y_pred))
+        return loss_sum / tf.cast(len(generator_flow), dtype=tf.float32) 
+
     def fit(self):
         optimizer = tf.keras.optimizers.Adam(lr=self.lr, beta_1=self.momentum)
         self.model.summary()
@@ -105,6 +114,7 @@ class RGBRegressionModel:
         print(f'validate on {len(self.validation_image_paths)} samples')
 
         iteration_count = 0
+        min_val_loss = 999999999.0
         loss_fn = yuv_loss if self.train_type == 'one_color' else confidence_rgb_loss
         while True:
             self.train_data_generator.flow().shuffle()
@@ -114,9 +124,18 @@ class RGBRegressionModel:
                 if self.training_view_flag:
                     self.training_view.update(self.model)
                 print(f'\r[iteration count : {iteration_count:6d}] loss => {loss:.4f}', end='')
+                if iteration_count % 10 == 0:
+                    print()
+                    val_loss = self.evaluate(self.model, self.validation_data_generator.flow(), loss_fn)
+                    print(f'val_loss : {val_loss:.4f}')
+                    if val_loss < min_val_loss:
+                        min_val_loss = val_loss
+                        self.model.save(f'checkpoints/model_{iteration_count}_iter_{val_loss:.4f}_val_loss.h5', include_optimizer=False)
+                        print('minimum val loss model saved')
+                    print()
                 if iteration_count == self.iterations:
                     print('train end successfully')
-                    return
+                    exit(0)
 
     def predict_validation_images(self):
         for img_path in self.validation_image_paths:
