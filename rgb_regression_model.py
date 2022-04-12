@@ -22,8 +22,6 @@ class RGBRegressionModel:
             input_shape,
             lr,
             momentum,
-            decay,
-            burn_in,
             batch_size,
             iterations,
             train_type='one_color',
@@ -37,7 +35,6 @@ class RGBRegressionModel:
         self.input_shape = input_shape
         self.lr = lr
         self.momentum = momentum
-        self.burn_in = burn_in
         self.batch_size = batch_size
         self.iterations = iterations
         self.train_type = train_type
@@ -55,7 +52,7 @@ class RGBRegressionModel:
             output_node_size = 8  # [objectness_score, r, g, b, second_rgb_score, r, g, b]
 
         if pretrained_model_path == '':
-            self.model = get_model(self.input_shape, decay=decay, output_node_size=output_node_size)
+            self.model = get_model(self.input_shape, output_node_size=output_node_size)
         else:
             self.model = tf.keras.models.load_model(pretrained_model_path, compile=False)
 
