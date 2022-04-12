@@ -124,7 +124,7 @@ class RGBRegressionModel:
                 if self.training_view_flag:
                     self.training_view.update(self.model)
                 print(f'\r[iteration count : {iteration_count:6d}] loss => {loss:.4f}', end='')
-                if iteration_count % 10 == 0:
+                if iteration_count % 10000 == 0:
                     print()
                     val_loss = self.evaluate(self.model, self.validation_data_generator.flow(), loss_fn)
                     print(f'val_loss : {val_loss:.4f}')
