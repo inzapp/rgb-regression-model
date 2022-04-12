@@ -6,11 +6,10 @@ def get_model(input_shape, decay, output_node_size):
     x = tf.keras.layers.Conv2D(
         filters=16,
         kernel_size=3,
-        kernel_initializer='he_uniform',
+        kernel_initializer='he_normal',
         padding='same',
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
-        use_bias=False)(input_layer)
-    x = tf.keras.layers.BatchNormalization()(x)
+        use_bias=True)(input_layer)
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.MaxPool2D()(x)
 
@@ -18,11 +17,10 @@ def get_model(input_shape, decay, output_node_size):
     x = tf.keras.layers.Conv2D(
         filters=32,
         kernel_size=3,
-        kernel_initializer='he_uniform',
+        kernel_initializer='he_normal',
         padding='same',
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
-        use_bias=False)(x)
-    # x = tf.keras.layers.BatchNormalization()(x)
+        use_bias=True)(x)
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.MaxPool2D()(x)
 
@@ -30,11 +28,10 @@ def get_model(input_shape, decay, output_node_size):
     x = tf.keras.layers.Conv2D(
         filters=64,
         kernel_size=3,
-        kernel_initializer='he_uniform',
+        kernel_initializer='he_normal',
         padding='same',
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
-        use_bias=False)(x)
-    # x = tf.keras.layers.BatchNormalization()(x)
+        use_bias=True)(x)
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.MaxPool2D()(x)
 
@@ -42,11 +39,10 @@ def get_model(input_shape, decay, output_node_size):
     x = tf.keras.layers.Conv2D(
         filters=128,
         kernel_size=3,
-        kernel_initializer='he_uniform',
+        kernel_initializer='he_normal',
         padding='same',
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
-        use_bias=False)(x)
-    # x = tf.keras.layers.BatchNormalization()(x)
+        use_bias=True)(x)
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.MaxPool2D()(x)
 
@@ -54,11 +50,10 @@ def get_model(input_shape, decay, output_node_size):
     x = tf.keras.layers.Conv2D(
         filters=256,
         kernel_size=3,
-        kernel_initializer='he_uniform',
+        kernel_initializer='he_normal',
         padding='same',
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
-        use_bias=False)(x)
-    # x = tf.keras.layers.BatchNormalization()(x)
+        use_bias=True)(x)
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.MaxPool2D()(x)
 
@@ -66,16 +61,16 @@ def get_model(input_shape, decay, output_node_size):
     x = tf.keras.layers.Conv2D(
         filters=256,
         kernel_size=3,
-        kernel_initializer='he_uniform',
+        kernel_initializer='he_normal',
         padding='same',
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
-        use_bias=False)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
+        use_bias=True)(x)
     x = tf.keras.layers.ReLU()(x)
 
     x = tf.keras.layers.Conv2D(
         filters=output_node_size,
         kernel_size=1,
+        kernel_initializer='glorot_normal',
         kernel_regularizer=tf.keras.regularizers.l2(l2=decay) if decay > 0.0 else None,
         activation='sigmoid')(x)
     x = tf.keras.layers.GlobalAveragePooling2D(name='output')(x)
