@@ -8,7 +8,6 @@ import tensorflow as tf
 
 from generator import RGBRegressionModelDataGenerator
 from loss import confidence_rgb_loss, yuv_loss
-from lr_scheduler import LearningRateScheduler
 from model import get_model
 from training_view import TrainingView
 
@@ -80,14 +79,7 @@ class RGBRegressionModel:
             batch_size=self.batch_size,
             train_type=self.train_type,
             output_node_size=output_node_size)
-
         self.training_view = TrainingView(self.model, self.train_image_paths, self.validation_image_paths)
-        self.lr_scheduler = LearningRateScheduler(
-            lr=self.lr,
-            burn_in=self.burn_in,
-            iterations=self.iterations,
-            batch_size=self.batch_size,
-            validation_data_generator_flow=self.validation_data_generator.flow())
 
     @staticmethod
     def __init_image_paths(image_path, validation_split=0.0):
