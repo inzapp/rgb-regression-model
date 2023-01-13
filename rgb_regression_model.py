@@ -11,6 +11,7 @@ from generator import RGBRegressionModelDataGenerator
 from loss import confidence_rgb_loss, yuv_loss
 from model import get_model
 from training_view import TrainingView
+from lr_scheduler import LRScheduler
 
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 live_view_previous_time = time()
@@ -22,6 +23,7 @@ class RGBRegressionModel:
             train_image_path,
             input_shape,
             lr,
+            warm_up,
             momentum,
             batch_size,
             iterations,
@@ -35,6 +37,7 @@ class RGBRegressionModel:
         self.validation_split = validation_split
         self.input_shape = input_shape
         self.lr = lr
+        self.warm_up = warm_up
         self.momentum = momentum
         self.batch_size = batch_size
         self.iterations = iterations
@@ -107,7 +110,7 @@ class RGBRegressionModel:
         return loss_sum / tf.cast(len(generator_flow), dtype=tf.float32) 
 
     def fit(self):
-        optimizer = tf.keras.optimizers.Adam(lr=self.lr, beta_1=self.momentum)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr, beta_1=self.momentum)
         self.model.summary()
 
         print(f'\ntrain on {len(self.train_image_paths)} samples')
@@ -116,15 +119,18 @@ class RGBRegressionModel:
         iteration_count = 0
         min_val_loss = 999999999.0
         loss_fn = yuv_loss if self.train_type == 'one_color' else confidence_rgb_loss
+        lr_scheduler = LRScheduler(iterations=self.iterations, lr=self.lr, warm_up=self.warm_up, policy='step')
         while True:
             self.train_data_generator.flow().shuffle()
             for batch_x, batch_y in self.train_data_generator.flow():
+                lr_scheduler.update(optimizer, iteration_count)
                 loss = self.compute_gradient(self.model, optimizer, batch_x, batch_y, loss_fn)
                 iteration_count += 1
+                warm_up_end = iteration_count >= int(self.iterations * self.warm_up)
                 if self.training_view_flag:
                     self.training_view.update(self.model)
                 print(f'\r[iteration count : {iteration_count:6d}] loss => {loss:.4f}', end='')
-                if iteration_count % 10000 == 0:
+                if warm_up_end and iteration_count % 1000 == 0:
                     print()
                     val_loss = self.evaluate(self.model, self.validation_data_generator.flow(), loss_fn)
                     print(f'val_loss : {val_loss:.4f}')
