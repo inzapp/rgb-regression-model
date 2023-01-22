@@ -36,13 +36,13 @@ But can CNN really extract the color of the image?
 
 I found out through a simple experiment that this is possible.
 
-<img src="/md/rgb.jpg" width="500"><br>
+<img src="/md/rgb.jpg" width="800"><br>
 
 Each image on the left is an input image, and the image on the right is the result of converting RGB values from the output of the regression model into an image.
 
 The model used for the training is a 128x128x3 model and trained with approximately 1 million parameters.
 
-<img src="/md/rgb_noise.jpg" width="500"><br>
+<img src="/md/rgb_noise.jpg" width="800"><br>
 
 The above image shows that colors can also be extracted for the ROI from images that contain noise.
 
@@ -56,7 +56,7 @@ I created a very convenient labeling tool based on OpenCV.
 
 All you have to do is copy the label_rgb.py file to where the images are located and run it.
 
-<img src="/md/label_rgb.gif" width="500"><br>
+<img src="/md/label_rgb.gif" width="600"><br>
 
 You can label the color of the desired coordinate in the image as the representative color.
 
